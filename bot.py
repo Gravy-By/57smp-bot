@@ -7,6 +7,8 @@ from rcon.source import rcon
 TOKEN = os.getenv('DISCORD_TOKEN')  # Вставьте сюда токен из Discord Developer Portal
 MINECRAFT_IP = '57.serveminecraft.net'
 RCON_PORT = 25575  # Если хостинг использует другой порт для RCON, измените его здесь
+
+# ИСПРАВЛЕНО: Для библиотеки rcon.source аргумент должен называться passwd, а не password
 RCON_PASSWORD = '57902'
 
 # Прямая ссылка на ваше фото
@@ -15,7 +17,10 @@ HELP_IMAGE_URL = "https://ibb.co"
 
 class MyBot(discord.Client):
     def __init__(self):
-        super().__init__(intents=discord.Intents.all())
+        # Используем стандартные интенты для предотвращения дублирования событий
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
@@ -25,7 +30,8 @@ bot = MyBot()
 
 def run_rcon_command(command):
     try:
-        return rcon(command, host=MINECRAFT_IP, port=RCON_PORT, password=RCON_PASSWORD)
+        # ИСПРАВЛЕНО: Изменено имя аргумента с password на passwd, чтобы библиотека работала корректно
+        return rcon(command, host=MINECRAFT_IP, port=RCON_PORT, passwd=RCON_PASSWORD)
     except Exception as e:
         return f"error: {e}"
 
@@ -33,21 +39,24 @@ def run_rcon_command(command):
 async def on_ready():
     print(f'Бот {bot.user.name} успешно запущен!')
 
-# 1. Реакция на любое обычное сообщение в чате
+# 1. Реакция на текстовые сообщения (ИСПРАВЛЕНО: теперь бот НЕ спамит дважды на любое слово)
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    welcome_text = (
-        "👋 **Привет! Рады видеть тебя на сервере 57 СМП!**\n"
-        "Выберите нужное действие:\n"
-        "🔹 `/whitelist <ник>` — добавиться в вайтлист\n"
-        "🔹 `/server` — узнать IP и версию сервера\n"
-        "🔹 `/help` — информация о сервере\n"
-        "🔹 `/rules` — правила сервера"
-    )
-    await message.reply(welcome_text)
+    # Бот ответит только если пользователь напишет "привет", "старт" или упомянет бота
+    content_lower = message.content.lower()
+    if "привет" in content_lower or "старт" in content_lower or bot.user.mentioned_in(message):
+        welcome_text = (
+            "👋 **Привет! Рады видеть тебя на сервере 57 СМП!**\n"
+            "Выберите нужное действие:\n"
+            "🔹 `/whitelist <ник>` — добавиться в вайтлист\n"
+            "🔹 `/server` — узнать IP и версию сервера\n"
+            "🔹 `/help` — информация о сервере\n"
+            "🔹 `/rules` — правила сервера"
+        )
+        await message.reply(welcome_text)
 
 # 2. Слеш-команда /start
 @bot.tree.command(name="start", description="Показать приветственное меню")
@@ -77,10 +86,11 @@ async def whitelist(interaction: discord.Interaction, nickname: str):
     
     rcon_response = run_rcon_command(f"whitelist add {clean_nickname}")
     
+    # Проверяем успешность ответа от сервера Minecraft
     if "Added" in rcon_response or "добавлен" in rcon_response.lower() or "already" in rcon_response:
         await interaction.followup.send(f"✅ Игрок **{clean_nickname}** успешно добавлен в вайтлист сервера 57 СМП!")
     else:
-        await interaction.followup.send(f"❌ Не удалось добавить игрока. Проверьте, включен ли server.")
+        await interaction.followup.send(f"❌ Не удалось добавить игрока. Ответ сервера: `{rcon_response}`")
 
 # 4. Слеш-команда /help
 @bot.tree.command(name="help", description="Помощь и информация о сервере")
