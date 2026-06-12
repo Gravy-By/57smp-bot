@@ -143,13 +143,13 @@ async def rules_command(interaction: discord.Interaction):
         color=discord.Color.orange()
     )
     embed.add_field(
-        name="1. Честная игра", 
-        value="Категорически запрещено играть с читами.", 
+        name="1. Запрещено играть с читами., 
+        value="", 
         inline=False
     )
     embed.add_field(
-        name="2. Модификации интерфейса", 
-        value="Запрещен фрикам (FreeCam) сквозь блоки, использование карт с включенным режимом пещер и радаром, отображающим игроков.", 
+        name="2. Запрещен фрикам (FreeCam) сквозь блоки, использование карт с включенным режимом пещер и радаром, отображающим игроков.", 
+        value="", 
         inline=False
     )
     await interaction.response.send_message(embed=embed)
@@ -162,7 +162,7 @@ async def server_command(interaction: discord.Interaction):
         color=discord.Color.green()
     )
     embed.add_field(name="🌐 IP адрес", value=f"`{MINECRAFT_IP}`", inline=True)
-    embed.add_field(name="⚙️ Версия", value="`1.21.1`", inline=True)
+    embed.add_field(name="⚙️ Версия", value="`1.21.11`", inline=True)
     embed.add_field(
         name="📝 Что делать дальше?", 
         value="Пожалуйста, ознакомьтесь с правилами в команде `/rules` и не забудьте добавить себя в белый список с помощью `/whitelist <ваш_ник>`!", 
