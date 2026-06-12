@@ -134,7 +134,7 @@ async def server_command(interaction: discord.Interaction):
         color=discord.Color.green()
     )
     embed.add_field(name="🌐 IP адрес", value=f"`{MINECRAFT_IP}`", inline=True)
-    embed.add_field(name="⚙️ Версия", value="`1.21.1`", inline=True) # Поправлена опечатка в версии с 1.21.11 на 1.21.1
+    embed.add_field(name="⚙️ Версия", value="`1.21.11`", inline=True) # Поправлена опечатка в версии с 1.21.11 на 1.21.1
     embed.add_field(
         name="📝 Что делать дальше?", 
         value="Пожалуйста, ознакомьтесь с правилами в команде `/rules` и не забудьте добавить себя в белый список с помощью `/whitelist <ваш_ник>`!", 
