@@ -1,58 +1,31 @@
 import discord
 import os
-import asyncio
 from discord import app_commands
-from discord.ext import tasks  
 from rcon.source import rcon
-from mcstatus import JavaServer  
 
 # --- НАСТРОЙКИ СЕРВЕРА 57 СМП ---
-TOKEN = os.getenv('DISCORD_TOKEN')  
+TOKEN = os.getenv('DISCORD_TOKEN')  # Вставьте сюда токен из Discord Developer Portal
 MINECRAFT_IP = '57.serveminecraft.net'
-RCON_PORT = 25575  
+RCON_PORT = 25575  # Если хостинг использует другой порт для RCON, измените его здесь
 RCON_PASSWORD = '57902'
 
-# Твоя точная прямая ссылка на PNG-картинку
-HELP_IMAGE_URL = "https://i.ibb.co/gLTrTMMv/pack.png"
+# Прямая ссылка на ваше фото
+HELP_IMAGE_URL = "https://ibb.co"
 # ----------------------------------------------------
 
 class MyBot(discord.Client):
     def __init__(self):
-        intents = discord.Intents.default()
-        intents.message_content = True
-        super().__init__(intents=intents)
+        super().__init__(intents=discord.Intents.all())
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
         await self.tree.sync()
-        self.update_status.start()
-
-    @tasks.loop(seconds=30)
-    async def update_status(self):
-        try:
-            server = await JavaServer.async_lookup(MINECRAFT_IP)
-            status = await server.async_status()
-            
-            online = status.players.online
-            max_players = status.players.max
-            
-            activity_text = f"на 57 СМП (Игроков: {online}/{max_players})"
-            await self.change_presence(activity=discord.Game(name=activity_text))
-            
-        except Exception as e:
-            print(f"Ошибка при получении онлайна: {e}")
-            await self.change_presence(activity=discord.Game(name="на 57 СМП (Сервер оффлайн)"), status=discord.Status.dnd)
-
-    @update_status.before_loop
-    async def before_update_status(self):
-        await self.wait_until_ready()
 
 bot = MyBot()
 
 def run_rcon_command(command):
     try:
-        response = rcon(command, host=MINECRAFT_IP, port=RCON_PORT, password=RCON_PASSWORD)
-        return response if response else "Команда выполнена"
+        return rcon(command, host=MINECRAFT_IP, port=RCON_PORT, password=RCON_PASSWORD)
     except Exception as e:
         return f"error: {e}"
 
@@ -60,22 +33,21 @@ def run_rcon_command(command):
 async def on_ready():
     print(f'Бот {bot.user.name} успешно запущен!')
 
-# 1. Реакция на упоминание бота
+# 1. Реакция на любое обычное сообщение в чате
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    if bot.user.mentioned_in(message):
-        welcome_text = (
-            "👋 **Привет! Рады видеть тебя на сервере 57 СМП!**\n"
-            "Используй наши удобные слеш-команды:\n"
-            "🔹 `/whitelist <ник>` — добавиться в вайтлист\n"
-            "🔹 `/server` — узнать IP и версию сервера\n"
-            "🔹 `/help` — информация о сервере\n"
-            "🔹 `/rules` — правила сервера"
-        )
-        await message.reply(welcome_text)
+    welcome_text = (
+        "👋 **Привет! Рады видеть тебя на сервере 57 СМП!**\n"
+        "Выберите нужное действие:\n"
+        "🔹 `/whitelist <ник>` — добавиться в вайтлист\n"
+        "🔹 `/server` — узнать IP и версию сервера\n"
+        "🔹 `/help` — информация о сервере\n"
+        "🔹 `/rules` — правила сервера"
+    )
+    await message.reply(welcome_text)
 
 # 2. Слеш-команда /start
 @bot.tree.command(name="start", description="Показать приветственное меню")
@@ -105,22 +77,27 @@ async def whitelist(interaction: discord.Interaction, nickname: str):
     
     rcon_response = run_rcon_command(f"whitelist add {clean_nickname}")
     
-    success_keywords = ["added", "добавлен", "already", "уже"]
-    if any(word in rcon_response.lower() for word in success_keywords):
+    if "Added" in rcon_response or "добавлен" in rcon_response.lower() or "already" in rcon_response:
         await interaction.followup.send(f"✅ Игрок **{clean_nickname}** успешно добавлен в вайтлист сервера 57 СМП!")
     else:
-        await interaction.followup.send(f"❌ Не удалось добавить игрока. Ответ сервера: `{rcon_response}`.")
+        await interaction.followup.send(f"❌ Не удалось добавить игрока. Проверьте, включен ли server.")
 
-# 4. Слеш-команда /help (С ТВОЕЙ ПРЯМОЙ КАРТИНКОЙ И БЕЗ ТЕКСТА ОПИСАНИЯ)
+# 4. Слеш-команда /help
 @bot.tree.command(name="help", description="Помощь и информация о сервере")
 async def help_command(interaction: discord.Interaction):
     await interaction.response.defer()
     embed = discord.Embed(
         title="🧭 57 СМП",
-        description="Добро пожаловать!", # Текстовые поля очищены, как ты просил
+        description=(
+            "Сервер с парой особенностей:\n"
+            "• Граница мира 600х600\n"
+            "• Полная анонимность\n\n"
+            "*Идея сервера:* `Пиротехник`\n"
+            "*Технические админы:* `Слайм`, `Граву`"
+        ),
         color=discord.Color.dark_red()
     )
-    embed.set_image(url=HELP_IMAGE_URL) # Картинка берётся строго по твоей ссылке
+    embed.set_image(url=HELP_IMAGE_URL)
     await interaction.followup.send(embed=embed)
 
 # 5. Слеш-команда /rules
@@ -129,17 +106,12 @@ async def rules_command(interaction: discord.Interaction):
     await interaction.response.defer()
     embed = discord.Embed(
         title="📜 Правила сервера 57 СМП",
+        description=(
+            "**1. Запрещено играть с любыми читами.**\n"
+            "**2. Запрещен фрикам сквозь блоки**\n"
+            "**3. Карты, с включенным режимом пещер и радаром**"
+        ),
         color=discord.Color.orange()
-    )
-    embed.add_field(
-        name="1. Честная игра", 
-        value="Категорически запрещено играть с читами.", 
-        inline=False
-    )
-    embed.add_field(
-        name="2. Модификации интерфейса", 
-        value="Запрещен фрикам (FreeCam) сквозь блоки, использование карт с включенным режимом пещер и радаром, отображающим игроков.", 
-        inline=False
     )
     await interaction.followup.send(embed=embed)
 
@@ -152,7 +124,7 @@ async def server_command(interaction: discord.Interaction):
         color=discord.Color.green()
     )
     embed.add_field(name="🌐 IP адрес", value=f"`{MINECRAFT_IP}`", inline=True)
-    embed.add_field(name="⚙️ Версия", value="`1.21.1`", inline=True)
+    embed.add_field(name="⚙️ Версия", value="`1.21.11`", inline=True)
     embed.add_field(
         name="📝 Что делать дальше?", 
         value="Пожалуйста, ознакомьтесь с правилами в команде `/rules` и не забудьте добавить себя в белый список с помощью `/whitelist <ваш_ник>`!", 
