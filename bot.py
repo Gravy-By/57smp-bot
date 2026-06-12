@@ -1,9 +1,10 @@
 import discord
+import os
 from discord import app_commands
 from rcon.source import rcon
 
 # --- НАСТРОЙКИ СЕРВЕРА 57 СМП ---
-TOKEN = 'MTUxNTAwODAwMDkyOTE3MzU2NQ.G4oKVn.hgkCJvzZebQEa2WKHTIBWYoeGbiMtSkosRcO64'  # Вставьте сюда токен из Discord Developer Portal
+TOKEN = os.getenv('DISCORD_TOKEN')  # Вставьте сюда токен из Discord Developer Portal
 MINECRAFT_IP = '57.serveminecraft.net'
 RCON_PORT = 25575  # Если хостинг использует другой порт для RCON, измените его здесь
 RCON_PASSWORD = '57902'
