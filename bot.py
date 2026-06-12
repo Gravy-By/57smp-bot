@@ -143,7 +143,7 @@ async def rules_command(interaction: discord.Interaction):
         color=discord.Color.orange()
     )
     embed.add_field(
-        name="1. Запрещено играть с читами., 
+        name="1. Запрещено играть с читами.", 
         value="", 
         inline=False
     )
